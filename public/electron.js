@@ -3,6 +3,27 @@ const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const isDev = require('electron-is-dev')
 const { spawn } = require('child_process')
+// ✅ Verifica se está rodando como admin
+const isAdmin = () => {
+  try {
+    require('child_process').execSync('net session', { stdio: 'pipe' })
+    return true
+  } catch (e) {
+    return false
+  }
+}
+
+// Se não for admin, reinicia como admin
+if (process.platform === 'win32' && !isAdmin()) {
+  const { spawn } = require('child_process')
+  spawn('powershell.exe', [
+    'Start-Process', 
+    `"${process.execPath}"`,
+    '-Verb', 'RunAs'
+  ])
+  app.quit()
+  process.exit()
+}
 
 // ========== FUNÇÃO AUXILIAR PARA POWERSHELL COM UTF-8 ==========
 function executarPowerShell(comando) {
@@ -794,36 +815,105 @@ ipcMain.handle('obter-wallpaper', async (event) => {
   }
 })
 
-
 // IPC: Aplicar Wallpaper
 ipcMain.handle('aplicar-wallpaper', async (event, caminhoWallpaper) => {
   try {
-    const comando = `
+    const path = require('path')
+    const fs = require('fs')
+    const { app } = require('electron')
+    const { spawn } = require('child_process')
+
+    // Se for data URL, salva como arquivo real
+    if (caminhoWallpaper.startsWith('data:')) {
+      const base64Data = caminhoWallpaper.split(',')[1]
+      const wallpaperDir = path.join(app.getPath('userData'), 'wallpaper')
+
+      if (!fs.existsSync(wallpaperDir)) {
+        fs.mkdirSync(wallpaperDir, { recursive: true })
+      }
+
+      const wallpaperPath = path.join(wallpaperDir, 'wallpaper.jpg')
+
+      try {
+        const buffer = Buffer.from(base64Data, 'base64')
+        fs.writeFileSync(wallpaperPath, buffer)
+        console.log('✅ Wallpaper salvo em:', wallpaperPath)
+        caminhoWallpaper = wallpaperPath
+      } catch (e) {
+        return { sucesso: false, erro: 'Erro ao salvar: ' + e.message }
+      }
+    }
+
+    console.log('🎨 Aplicando wallpaper:', caminhoWallpaper)
+
+    try {
+      // ✅ Script PowerShell com C# (EXATAMENTE como funciona no seu outro sistema)
+      const psScript = `
 Add-Type -TypeDefinition @"
 using System.Runtime.InteropServices;
 public class Wallpaper {
-  [DllImport("user32.dll", SetLastError = true)]
-  public static extern bool SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool SystemParametersInfo(int uAction, int uParam, string lpvParam, int fuWinIni);
 }
 "@
 
-try {
-  [Wallpaper]::SystemParametersInfo(20, 0, "${caminhoWallpaper}", 3)
-  Write-Output "✓ Wallpaper aplicado com sucesso."
-} catch {
-  Write-Output "✗ Erro ao aplicar wallpaper: $_"
+$path = '${caminhoWallpaper}'
+Write-Host "Aplicando wallpaper: $path"
+$result = [Wallpaper]::SystemParametersInfo(20, 0, $path, 3)
+Write-Host "Resultado: $result"
+
+if ($result) {
+    Write-Host "SUCESSO"
+} else {
+    Write-Host "ERRO"
 }
 `
 
-    const resultado = await executarPowerShell(comando)
+      return new Promise((resolve) => {
+        const ps = spawn('powershell.exe', [
+          '-NoProfile',
+          '-ExecutionPolicy', 'Bypass',
+          '-Command', psScript
+        ], {
+          encoding: 'utf8'
+        })
 
-    if (resultado.code === 0) {
-      return { sucesso: true, mensagem: 'Wallpaper aplicado com sucesso!' }
-    } else {
-      return { sucesso: false, erro: 'Erro ao aplicar wallpaper' }
+        let stdout = ''
+        let stderr = ''
+
+        ps.stdout.on('data', (data) => {
+          stdout += data.toString()
+          console.log('PS OUT:', data.toString().trim())
+        })
+
+        ps.stderr.on('data', (data) => {
+          stderr += data.toString()
+          console.log('PS ERR:', data.toString().trim())
+        })
+
+        ps.on('close', (code) => {
+          console.log('Exit code:', code)
+
+          if (stdout.includes('SUCESSO')) {
+            console.log('✅ Wallpaper aplicado com sucesso!')
+            resolve({ sucesso: true })
+          } else {
+            console.log('❌ Falha ao aplicar wallpaper')
+            resolve({ sucesso: false, erro: 'Wallpaper não foi aplicado' })
+          }
+        })
+
+        ps.on('error', (error) => {
+          console.error('Erro ao executar PS:', error.message)
+          resolve({ sucesso: false, erro: error.message })
+        })
+      })
+    } catch (erro) {
+      console.error('❌ Erro ao executar:', erro.message)
+      return { sucesso: false, erro: erro.message }
     }
   } catch (erro) {
-    console.error('Erro ao aplicar wallpaper:', erro)
+    console.error('❌ Erro geral:', erro.message)
     return { sucesso: false, erro: erro.message }
   }
 })
