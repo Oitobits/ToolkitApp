@@ -1,22 +1,4 @@
 {
-    "TECH-TOOLKIT-PRO-2024": {
-        "ativa": true,
-        "cliente": "Licença Principal (Administrador)",
-        "expira": "2025-12-31"
-    },
-    "TECH-1234-5678-9ABC-DEF0": {
-        "ativa": true,
-        "cliente": "Licença Principal (Administrador)",
-        "expira": "2025-12-31"
-    },
-    "BIGUAÇU-TEC": {
-        "ativa": true,
-        "cliente": "Licença Principal (Administrador)",
-        "expira": "2025-12-31"
-    },
-    "CLIENTE-EXE-002": {
-        "ativa": false,
-        "cliente": "Cliente Inadimplente (Bloqueado)",
-        "motivo": "Pagamento pendente"
-    }
+  "CHAVE-FREE": { "ativa": true, "cliente": "Jose Grátis", "tipo": "comunidade" },
+  "CHAVE-PRO": { "ativa": true, "cliente": "Maria Premium", "tipo": "profissional" }
 }
