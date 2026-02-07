@@ -10,9 +10,9 @@
         "expira": "2025-12-31"
     },
     "BIGUAÇU-TEC": {
-        "ativa": true,
-        "cliente": "Cliente Exemplo 1",
-        "expira": "2024-12-31"
+        "ativa": false,
+        "cliente": "Cliente Inadimplente (Bloqueado)",
+        "motivo": "Pagamento pendente"
     },
     "CLIENTE-EXE-002": {
         "ativa": false,
