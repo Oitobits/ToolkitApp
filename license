@@ -10,9 +10,9 @@
         "expira": "2025-12-31"
     },
     "BIGUAÇU-TEC": {
-        "ativa": false,
-        "cliente": "Cliente Inadimplente (Bloqueado)",
-        "motivo": "Pagamento pendente"
+        "ativa": true,
+        "cliente": "Licença Principal (Administrador)",
+        "expira": "2025-12-31"
     },
     "CLIENTE-EXE-002": {
         "ativa": false,
